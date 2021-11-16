@@ -23,7 +23,7 @@ class MathsOperationsTests(unittest.TestCase):
 
     def test_atan(self):
         result = self.exp.run_statement("result = atan(0.5)")
-        self.assertEqual(0.46364760900080615, result['result'])
+        self.assertAlmostEquals(0.46364760900080615, result['result'])
 
     def test_atand(self):
         result = self.exp.run_statement("result = atand(1.0)")
@@ -39,7 +39,7 @@ class MathsOperationsTests(unittest.TestCase):
 
     def test_acos(self):
         result = self.exp.run_statement("result = acos(0.5)")
-        self.assertEqual(1.0471975511965976, result['result'])
+        self.assertAlmostEquals(1.0471975511965976, result['result'])
 
     def test_acosd(self):
         result = self.exp.run_statement("result = acosd(0.5)")
@@ -55,7 +55,7 @@ class MathsOperationsTests(unittest.TestCase):
 
     def test_asin(self):
         result = self.exp.run_statement("result = asin(0.5)")
-        self.assertEqual(0.5235987755982988, result['result'])
+        self.assertAlmostEquals(0.5235987755982988, result['result'])
 
     def test_asind(self):
         result = self.exp.run_statement("result = asind(0.5)")
