@@ -1,17 +1,7 @@
 import math
 
+from .exceptions import ExpressionError
 from .globals import SIXTH_PI, QUARTER_PI, THIRD_PI, PI, TWO_PI, ONE_AND_HALF_PI, HALF_PI
-
-
-class ExpressionError(Exception):
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
-
-    def value(self):
-        return self.value
 
 
 class ExpressionBuilder:

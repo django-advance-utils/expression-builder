@@ -1,6 +1,7 @@
 import unittest
 
-from expression_builder.expression_builder import ExpressionBuilder, ExpressionError
+from expression_builder.exceptions import ExpressionError
+from expression_builder.expression_builder import ExpressionBuilder
 
 
 class SymbolicLinkTests(unittest.TestCase):
