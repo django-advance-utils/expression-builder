@@ -242,7 +242,8 @@ class ExpressionBuilder:
                                      variables, statement_variables, replace_values, parts, _process_multi_part)
                     parts.append((self.question_mark_separator,))
                 elif current_character == "=":
-                    parts.append((self.result_eq_variable, current_statement))
+                    if current_statement != '':
+                        parts.append((self.result_eq_variable, current_statement))
                 current_statement = ""
                 current_operator = self.op_none
             elif current_character == ';':
