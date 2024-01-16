@@ -76,3 +76,11 @@ class MathsOperationsTests(unittest.TestCase):
     def test_int(self):
         result = self.exp.run_statement("result = int(1.3)")
         self.assertEqual(1, result['result'])
+
+    def test_minus_strings(self):
+        result = self.exp.run_statement("result = '' - ''")
+        self.assertEqual('', result['result'])
+
+    def test_plus_strings(self):
+        result = self.exp.run_statement("result = '' + ''")
+        self.assertEqual('', result['result'])

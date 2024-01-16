@@ -823,6 +823,12 @@ class ExpressionBuilder:
             elif operator == self.logic_ne:
                 return right_hand_statement not in left_hand_statement
             raise ExpressionError('Unable to do check list with operator')
+        elif (operator not in [self.op_none, self.logic_and, self.logic_or, self.logic_xor, self.logic_eq, self.logic_ne]
+                and isinstance(left_hand_statement, str)
+                and isinstance(right_hand_statement, str)
+                and left_hand_statement == ''
+                and right_hand_statement == ''):
+            return left_hand_statement
 
         if operator == self.op_none:
             return right_hand_statement
