@@ -56,20 +56,24 @@ class ErrorTests(unittest.TestCase):
         result = self.exp.run_statement(None)
         self.assertEqual("", result)
 
+    def test_double_logic_statement(self):
+        with self.assertRaises(ExpressionError) as cm:
+            self.exp.run_statement("1 == 1;1 == 1;")
+        the_exception = cm.exception
+        self.assertEqual(the_exception.value,  'Bad statement (1 == 1;1 == 1;)')
+
     def test_different_types(self):
         with self.assertRaises(ExpressionError) as cm:
             self.exp.run_statement("result = hello == 15", variables=self.vars)
         the_exception = cm.exception
         self.assertEqual(the_exception.value,  'Different type compare (result = hello == 15)')
 
-    def test_empty_operators(self):
-        with self.assertRaises(ExpressionError) as cm:
-            self.exp.run_statement("result = 10 + empty_string", self.vars)
-        the_exception = cm.exception
-        self.assertEqual(the_exception.value,  'Empty operator (result = 10 + empty_string)')
+    def test_different_type_blank(self):
+        # should not cause an error as the var is blank and will default to 0
+        result = self.exp.run_statement("result = blank + 15", variables={'blank': ''})
+        self.assertEqual({'result': 15}, result)
 
-    def test_double_logic_statement(self):
-        with self.assertRaises(ExpressionError) as cm:
-            self.exp.run_statement("1 == 1;1 == 1;")
-        the_exception = cm.exception
-        self.assertEqual(the_exception.value,  'Bad statement (1 == 1;1 == 1;)')
+    def test_different_type_blank2(self):
+        # should not cause an error as the var is blank and will default to 0
+        result = self.exp.run_statement("result = 15 + blank", variables={'blank': ''})
+        self.assertEqual({'result': 15}, result)

@@ -1,5 +1,6 @@
 import unittest
 
+from expression_builder.exceptions import ExpressionError
 from expression_builder.expression_builder import ExpressionBuilder
 
 
@@ -30,3 +31,18 @@ class VariableUsedTests(unittest.TestCase):
         self.exp.run_statement("result = tom+fred", variables={'tom': 5})
         self.assertEqual({'tom': 1, 'fred': 1}, self.exp.get_used_variables())
 
+    def test_blanks(self):
+        self.exp.run_statement("(v17 + v22) + i19.t",
+                               variables={'v17': '',
+                                          'v22': '',
+                                          'i19.t': ''})
+
+        self.assertEqual({'i19.t': 1, 'v17': 1, 'v22': 1}, self.exp.get_used_variables())
+
+    def test_different_types(self):
+        self.exp.run_statement("(v17 + v22) + i19.t",
+                               variables={'v17': '',
+                                          'v22': 0,
+                                          'i19.t': ''})
+
+        self.assertEqual({'i19.t': 1, 'v17': 1, 'v22': 1}, self.exp.get_used_variables())

@@ -811,24 +811,23 @@ class ExpressionBuilder:
         return c in ['=', '<', '>', '&', '|', '!', '?', ':']
 
     def calculator(self, original_statement, left_hand_statement, operator, right_hand_statement):
-        if isinstance(left_hand_statement, str) and not isinstance(right_hand_statement, str) and \
-                operator != self.op_none:
-            raise ExpressionError('Different type compare (%s)' % original_statement)
-        elif isinstance(left_hand_statement, list):
+
+        if operator != self.op_none:
+            left_hand_statement, right_hand_statement = self.get_compare_values(
+                left_hand_statement=left_hand_statement,
+                right_hand_statement=right_hand_statement,
+                statement=original_statement)
+        if isinstance(left_hand_statement, list):
             if operator == self.logic_eq:
                 return right_hand_statement in left_hand_statement
             elif operator == self.logic_ne:
                 return right_hand_statement not in left_hand_statement
             raise ExpressionError('Unable to do check list with operator')
-        if (operator != self.op_none and
-                operator != self.logic_eq and
-                operator != self.logic_ne and
-                right_hand_statement == ''):
-            raise ExpressionError('Empty operator (%s)' % original_statement)
 
         if operator == self.op_none:
             return right_hand_statement
         elif operator == self.op_plus:
+
             return left_hand_statement + right_hand_statement
         elif operator == self.op_minus:
             return left_hand_statement - right_hand_statement
@@ -856,6 +855,36 @@ class ExpressionBuilder:
             return bool(left_hand_statement) != bool(right_hand_statement)
 
         return 0.0
+
+    @staticmethod
+    def get_compare_values(left_hand_statement, right_hand_statement, statement):
+        if left_hand_statement is None and right_hand_statement is None:
+            return None, None
+        elif isinstance(left_hand_statement, type(right_hand_statement)):
+            return left_hand_statement, right_hand_statement
+        elif ((isinstance(left_hand_statement, (int, float, bool)) and
+               isinstance(right_hand_statement, str)) or
+              (isinstance(left_hand_statement, str) and
+               isinstance(right_hand_statement, (int, float, bool)))):
+            if isinstance(left_hand_statement, str) and left_hand_statement == '':
+                left_hand_statement = 0
+            elif isinstance(right_hand_statement, str) and right_hand_statement == '':
+                right_hand_statement = 0
+            else:
+                raise ExpressionError('Different type compare (%s)' % statement)
+        elif left_hand_statement is None or right_hand_statement is None:
+            if left_hand_statement is None:
+                if isinstance(right_hand_statement, str):
+                    left_hand_statement = ''
+                else:
+                    left_hand_statement = 0
+            else:
+                if isinstance(left_hand_statement, str):
+                    right_hand_statement = ''
+                else:
+                    right_hand_statement = 0
+
+        return left_hand_statement, right_hand_statement
 
     def add_to_global(self, name, value, inheritance_level=-1, set_name=None):
         """
