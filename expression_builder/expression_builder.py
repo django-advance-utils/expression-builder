@@ -4,6 +4,20 @@ from .exceptions import ExpressionError
 from .globals import SIXTH_PI, QUARTER_PI, THIRD_PI, PI, TWO_PI, ONE_AND_HALF_PI, HALF_PI
 
 
+class ExpressionLog:
+    
+    def __init__(self):
+        self.variables = {}
+        self.statements = []
+
+    def add_variable(self, variable, value):
+        if variable not in self.variables:
+            self.variables[variable] = value
+
+    def __str__(self):
+        return f"Expression Log Statements: {self.statements}, Variables: {self.variables}"
+
+
 class ExpressionBuilder:
     op_none = 0
     op_plus = 1
@@ -25,6 +39,26 @@ class ExpressionBuilder:
     result_eq_variable = 17
 
     def __init__(self):
+
+        self.operators_map = {self.op_none: '',
+                              self.op_plus: '+',
+                              self.op_minus: '-',
+                              self.op_multiply: '*',
+                              self.op_divide: '/',
+                              self.logic_variable: '',
+                              self.logic_eq: '==',
+                              self.logic_ne: '!=',
+                              self.logic_gt: '>',
+                              self.logic_gte: '>=',
+                              self.logic_lt: '<',
+                              self.logic_lte: '<=',
+                              self.logic_and: '&&',
+                              self.logic_or: '||',
+                              self.logic_xor: 'XOR',
+                              self.question_mark: '?',
+                              self.question_mark_separator: ':',
+                              self.result_eq_variable: '='
+                              }
 
         self.operators = {'+': self.op_plus,
                           '-': self.op_minus,
@@ -50,7 +84,8 @@ class ExpressionBuilder:
         self.highest_inheritance_level = -1  # used for inheritance for indirect values
 
     def run_statement(self, statement, variables=None, statement_variables=None,
-                      replace_values=None, statement_inheritance_level=-1, _process_multi_part=True):
+                      replace_values=None, statement_inheritance_level=-1,
+                      _process_multi_part=True, expression_log=None):
         """
 
         This is the main guts of the class. This function is recursive when brackets are used
@@ -61,8 +96,17 @@ class ExpressionBuilder:
         @param replace_values:
         @param statement_inheritance_level:
         @param _process_multi_part: boolean
+        @param expression_log: dict
 
         """
+        log_statement_index = None
+        if expression_log is not None:
+            if not isinstance(expression_log, ExpressionLog):
+                assert False, 'Variable expression_log must be the "ExpressionLog" class'
+            else:
+                expression_log.statements.append('')
+                log_statement_index = len(expression_log.statements) - 1
+
         if statement == "" or statement is None:
             return ""
         elif isinstance(statement, (int, float, bool)):
@@ -106,12 +150,18 @@ class ExpressionBuilder:
                                                                 replace_values)
                         replace_string_mode = False
                     if not dictionary_value_mode:
+
+                        self.log_operator_symbol(expression_log=expression_log,
+                                                 log_statement_index=log_statement_index,
+                                                 operator=current_operator,
+                                                 statement=f'{current_character}{current_statement}{current_character}')
                         parts.append((current_operator, self.convert_variables(current_statement=current_statement,
                                                                                is_string=True,
                                                                                variables=variables,
                                                                                statement_variables=statement_variables,
                                                                                replace_values=replace_values,
-                                                                               process_multi_part=_process_multi_part)))
+                                                                               process_multi_part=_process_multi_part,
+                                                                               expression_log=expression_log)))
                         current_statement = ""
                     current_string_char = None
                 else:
@@ -130,6 +180,8 @@ class ExpressionBuilder:
                 dictionary_value_mode = True if current_character == '{' else '}'
             elif current_character == '(':
                 if bracket_count == 0 and current_statement != "":
+                    if expression_log is not None:
+                        expression_log.statements[log_statement_index] += f'{current_statement}'
                     function_name = current_statement
                     current_statement = ""
                 if bracket_count > 0:
@@ -141,15 +193,22 @@ class ExpressionBuilder:
                 if bracket_count > 0:
                     current_statement += current_character
                 elif bracket_count == 0:
+                    if expression_log is not None:
+                        self.log_operator_symbol(expression_log=expression_log,
+                                                 log_statement_index=log_statement_index,
+                                                 operator=current_operator,
+                                                 statement=f'({current_statement})')
 
                     if function_name is not None:
+
                         arguments = []
                         for argument in self.get_function_arguments(current_statement):
                             arg_statement = self.run_statement(argument,
                                                                variables=variables,
                                                                statement_variables=statement_variables,
                                                                replace_values=replace_values,
-                                                               statement_inheritance_level=self.get_inheritance_level())
+                                                               statement_inheritance_level=self.get_inheritance_level(),
+                                                               expression_log=expression_log)
                             arguments.append(arg_statement)
 
                         function_data = self.convert_functions(function_name, arguments)
@@ -157,16 +216,26 @@ class ExpressionBuilder:
                         if function_data['routine']:
                             if function_name == "switch":
                                 function_value, skip_characters = self.process_switch_statement(
-                                    function_data['value'],
-                                    statement,
-                                    current_character_index,
-                                    variables,
-                                    statement_variables,
-                                    replace_values)
-                                parts.append((current_operator, function_value))
-
+                                    switch_value=function_data['value'],
+                                    statement=statement,
+                                    current_character_index=current_character_index,
+                                    variables=variables,
+                                    statement_variables=statement_variables,
+                                    replace_values=replace_values,
+                                    expression_log=expression_log)
+                                self.append_part(parts=parts,
+                                                 expression_log=expression_log,
+                                                 log_statement_index=log_statement_index,
+                                                 operator=current_operator,
+                                                 statement=function_value,
+                                                 statement_value=True)
                         else:
-                            parts.append((current_operator, function_data['value']))
+                            self.append_part(parts=parts,
+                                             expression_log=expression_log,
+                                             log_statement_index=log_statement_index,
+                                             operator=current_operator,
+                                             statement=function_data['value'],
+                                             statement_value=True)
                         function_name = None
                         current_statement = ""
                         continue
@@ -175,17 +244,21 @@ class ExpressionBuilder:
                                                            variables=variables,
                                                            statement_variables=statement_variables,
                                                            replace_values=replace_values,
-                                                           statement_inheritance_level=self.get_inheritance_level())
+                                                           statement_inheritance_level=self.get_inheritance_level(),
+                                                           expression_log=expression_log)
 
                     if isinstance(current_statement, dict):
                         parts.append((current_operator, current_statement))
-
                     else:
                         try:
                             value = float(current_statement)
                         except ValueError:
                             value = current_statement
                         parts.append((current_operator, value))
+
+                        if expression_log is not None:
+                            expression_log.statements[log_statement_index] += f'[{value}]'
+
                     current_statement = ""
                 continue
 
@@ -197,16 +270,34 @@ class ExpressionBuilder:
 
             elif self.is_math_operator(current_character):
                 if len(current_statement) > 0:
-                    self.add_to_part(current_operator, current_statement,
-                                     variables, statement_variables, replace_values, parts, _process_multi_part)
+                    self.add_to_part(current_operator=current_operator,
+                                     current_statement=current_statement,
+                                     variables=variables,
+                                     statement_variables=statement_variables,
+                                     replace_values=replace_values,
+                                     parts=parts,
+                                     process_multi_part=_process_multi_part,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index)
                     current_statement = ""
                 current_operator = self.operators[current_character]
 
             elif (current_character == "X" and next_character == "O"
                   and next_character2 == "R" and statement[current_character_index - 1] == ' '):
-                self.add_to_part(current_operator, current_statement,
-                                 variables, statement_variables, replace_values, parts, _process_multi_part)
-                parts.append((self.logic_xor,))
+                self.add_to_part(current_operator=current_operator,
+                                 current_statement=current_statement,
+                                 variables=variables,
+                                 statement_variables=statement_variables,
+                                 replace_values=replace_values,
+                                 parts=parts,
+                                 process_multi_part=_process_multi_part,
+                                 expression_log=expression_log,
+                                 log_statement_index=log_statement_index)
+                self.append_part(parts=parts,
+                                 expression_log=expression_log,
+                                 log_statement_index=log_statement_index,
+                                 operator=self.logic_xor)
+
                 skip_characters = 2
                 current_statement = ""
                 current_operator = self.op_none
@@ -214,36 +305,106 @@ class ExpressionBuilder:
             elif self.is_logical_operator(current_character):
 
                 if next_character == "=" and current_character in self.logic_second_operators:
-                    self.add_to_part(current_operator, current_statement,
-                                     variables, statement_variables, replace_values, parts, _process_multi_part)
-                    parts.append((self.logic_second_operators[current_character],))
+                    self.add_to_part(current_operator=current_operator,
+                                     current_statement=current_statement,
+                                     variables=variables,
+                                     statement_variables=statement_variables,
+                                     replace_values=replace_values,
+                                     parts=parts,
+                                     process_multi_part=_process_multi_part,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index)
+
+                    self.append_part(parts=parts,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index,
+                                     operator=self.logic_second_operators[current_character])
                     skip_characters = 1
+
                 elif current_character == "&" and next_character == "&":
-                    self.add_to_part(current_operator, current_statement,
-                                     variables, statement_variables, replace_values, parts, _process_multi_part)
-                    parts.append((self.logic_and,))
+                    self.add_to_part(current_operator=current_operator,
+                                     current_statement=current_statement,
+                                     variables=variables,
+                                     statement_variables=statement_variables,
+                                     replace_values=replace_values,
+                                     parts=parts,
+                                     process_multi_part=_process_multi_part,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index)
+
+                    self.append_part(parts=parts,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index,
+                                     operator=self.logic_and)
                     skip_characters = 1
                 elif current_character == "|" and next_character == "|":
-                    self.add_to_part(current_operator, current_statement,
-                                     variables, statement_variables, replace_values, parts, _process_multi_part)
-                    parts.append((self.logic_or,))
+                    self.add_to_part(current_operator=current_operator,
+                                     current_statement=current_statement,
+                                     variables=variables,
+                                     statement_variables=statement_variables,
+                                     replace_values=replace_values,
+                                     parts=parts,
+                                     process_multi_part=_process_multi_part,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index)
+                    self.append_part(parts=parts,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index,
+                                     operator=self.logic_or)
                     skip_characters = 1
 
                 elif current_character in self.logic_first_operators:
-                    self.add_to_part(current_operator, current_statement,
-                                     variables, statement_variables, replace_values, parts, _process_multi_part)
-                    parts.append((self.logic_first_operators[current_character],))
+                    self.add_to_part(current_operator=current_operator,
+                                     current_statement=current_statement,
+                                     variables=variables,
+                                     statement_variables=statement_variables,
+                                     replace_values=replace_values,
+                                     parts=parts,
+                                     process_multi_part=_process_multi_part,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index)
+
+                    self.append_part(parts=parts,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index,
+                                     operator=self.logic_first_operators[current_character])
                 elif current_character == "?":
-                    self.add_to_part(current_operator, current_statement,
-                                     variables, statement_variables, replace_values, parts, _process_multi_part)
-                    parts.append((self.question_mark,))
+                    self.add_to_part(current_operator=current_operator,
+                                     current_statement=current_statement,
+                                     variables=variables,
+                                     statement_variables=statement_variables,
+                                     replace_values=replace_values,
+                                     parts=parts,
+                                     process_multi_part=_process_multi_part,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index)
+
+                    self.append_part(parts=parts,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index,
+                                     operator=self.question_mark)
                 elif current_character == ":":
-                    self.add_to_part(current_operator, current_statement,
-                                     variables, statement_variables, replace_values, parts, _process_multi_part)
-                    parts.append((self.question_mark_separator,))
+                    self.add_to_part(current_operator=current_operator,
+                                     current_statement=current_statement,
+                                     variables=variables,
+                                     statement_variables=statement_variables,
+                                     replace_values=replace_values,
+                                     parts=parts,
+                                     process_multi_part=_process_multi_part,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index)
+
+                    self.append_part(parts=parts,
+                                     expression_log=expression_log,
+                                     log_statement_index=log_statement_index,
+                                     operator=self.question_mark_separator)
                 elif current_character == "=":
                     if current_statement != '':
-                        parts.append((self.result_eq_variable, current_statement))
+                        self.append_part(parts=parts,
+                                         expression_log=expression_log,
+                                         log_statement_index=log_statement_index,
+                                         operator=self.result_eq_variable,
+                                         statement=current_statement)
                 current_statement = ""
                 current_operator = self.op_none
             elif current_character == ';':
@@ -255,8 +416,15 @@ class ExpressionBuilder:
                 current_statement += current_character
 
         if len(current_statement) > 0:
-            self.add_to_part(current_operator, current_statement,
-                             variables, statement_variables, replace_values, parts, _process_multi_part)
+            self.add_to_part(current_operator=current_operator,
+                             current_statement=current_statement,
+                             variables=variables,
+                             statement_variables=statement_variables,
+                             replace_values=replace_values,
+                             parts=parts,
+                             process_multi_part=_process_multi_part,
+                             expression_log=expression_log,
+                             log_statement_index=log_statement_index)
         results = self.process_parts(statement, parts)
 
         if new_statement is not None and len(new_statement) > 0:
@@ -270,23 +438,59 @@ class ExpressionBuilder:
                                                           variables=new_variables,
                                                           statement_variables=statement_variables,
                                                           replace_values=replace_values,
-                                                          statement_inheritance_level=self.get_inheritance_level())
+                                                          statement_inheritance_level=self.get_inheritance_level(),
+                                                          expression_log=expression_log)
 
             results = dict(list(results.items()) + list(extra_statements_results.items()))
 
         return results
 
+    def append_part(self, parts, expression_log, log_statement_index, operator,
+                    statement=None, statement_value=False):
+        self.log_operator_symbol(expression_log=expression_log,
+                                 log_statement_index=log_statement_index,
+                                 operator=operator,
+                                 statement=statement,
+                                 statement_value=statement_value
+                                 )
+
+        parts.append((operator, statement))
+
     def add_to_part(self, current_operator, current_statement, variables,
-                    statement_variables, replace_values, parts, process_multi_part):
+                    statement_variables, replace_values, parts,
+                    process_multi_part, expression_log, log_statement_index):
         if current_statement != "":
+            self.log_operator_symbol(expression_log=expression_log,
+                                     log_statement_index=log_statement_index,
+                                     operator=current_operator,
+                                     statement=current_statement)
+
             parts.append((current_operator, self.convert_variables(current_statement=current_statement,
                                                                    is_string=False,
                                                                    variables=variables,
                                                                    statement_variables=statement_variables,
                                                                    replace_values=replace_values,
-                                                                   process_multi_part=process_multi_part)))
+                                                                   process_multi_part=process_multi_part,
+                                                                   expression_log=expression_log)))
 
-    def string_replace(self, statement, variables=None, statement_variables=None, replace_values=None):
+    def log_operator_symbol(self, expression_log, log_statement_index, operator,
+                            statement=None, statement_value=False):
+        if expression_log is not None:
+            operator_symbol = self.operators_map.get(operator)
+            if operator not in [self.op_none, self.result_eq_variable] and operator_symbol is not None:
+                expression_log.statements[log_statement_index] += f' {operator_symbol} '
+            if statement is not None:
+                if statement_value:
+                    expression_log.statements[log_statement_index] += f'[{statement}]'
+                else:
+                    expression_log.statements[log_statement_index] += statement
+
+            if operator == self.result_eq_variable and operator_symbol is not None:
+                expression_log.statements[log_statement_index] += f' {operator_symbol} '
+
+    def string_replace(self, statement, variables=None, statement_variables=None, replace_values=None,
+                       expression_log=None):
+
         return_string = ""
         bracket_count = 0
         current_statement = ""
@@ -312,7 +516,8 @@ class ExpressionBuilder:
                                                variables=variables,
                                                statement_variables=statement_variables,
                                                replace_values=replace_values,
-                                               statement_inheritance_level=self.get_inheritance_level())
+                                               statement_inheritance_level=self.get_inheritance_level(),
+                                               expression_log=expression_log)
                     if isinstance(value, (float, int)):
                         return_string += "%g" % value
                     else:
@@ -428,7 +633,7 @@ class ExpressionBuilder:
             arguments.append(all_arguments)
         return arguments
 
-    def split_statement(self, current_statement, variables, statement_variables, replace_values):
+    def split_statement(self, current_statement, variables, statement_variables, replace_values, expression_log):
         """head
         This split a statement so it can be used for dictionaries
         dict_name[key] is normal use if dict_name{key} will mean that if it key doesn't
@@ -437,6 +642,7 @@ class ExpressionBuilder:
          @param variables:
          @param statement_variables:
          @param replace_values:
+         @param expression_log: boolean
 
         """
         if not ('{' in current_statement or '[' in current_statement):
@@ -468,7 +674,8 @@ class ExpressionBuilder:
                                                   variables=variables,
                                                   statement_variables=statement_variables,
                                                   replace_values=replace_values,
-                                                  statement_inheritance_level=self.get_inheritance_level())
+                                                  statement_inheritance_level=self.get_inheritance_level(),
+                                                  expression_log=expression_log)
                 return_data.append((current_part, True if current_character == '}' else False))
                 current_part = ''
                 special_mode = False
@@ -483,27 +690,32 @@ class ExpressionBuilder:
         return return_data
 
     def convert_variables(self, current_statement, is_string, variables,
-                          statement_variables, replace_values, process_multi_part):
+                          statement_variables, replace_values, process_multi_part, expression_log):
         if not is_string:
 
             if replace_values is not None:
                 for find_char, replace_with in replace_values.items():
                     current_statement = current_statement.replace(find_char, str(replace_with))
-            current_statement_split = self.split_statement(current_statement,
-                                                           variables,
-                                                           statement_variables,
-                                                           replace_values)
+            current_statement_split = self.split_statement(current_statement=current_statement,
+                                                           variables=variables,
+                                                           statement_variables=statement_variables,
+                                                           replace_values=replace_values,
+                                                           expression_log=expression_log)
 
             if current_statement in self.global_symbolic_link_data:
                 current_statement = self.global_symbolic_link_data[current_statement]['link_to']
 
             if variables is not None and current_statement in variables:
                 is_string = True
-                self.add_to_used_variables(current_statement)
+                self.add_to_used_variables(variable_name=current_statement,
+                                           expression_log=expression_log,
+                                           value=variables[current_statement])
                 current_statement = variables[current_statement]
             elif current_statement in self.global_data:
                 is_string = True
-                self.add_to_used_variables(current_statement)
+                self.add_to_used_variables(variable_name=current_statement,
+                                           expression_log=expression_log,
+                                           value=self.global_data[current_statement][0])
                 highest_inheritance_level = self.global_data[current_statement][1]
                 current_statement = self.global_data[current_statement][0]
                 if self.highest_inheritance_level < highest_inheritance_level:
@@ -513,7 +725,8 @@ class ExpressionBuilder:
                 is_string = True
                 current_statement = self.process_options(option_code=current_statement,
                                                          variables=variables,
-                                                         statement_variables=statement_variables)
+                                                         statement_variables=statement_variables,
+                                                         expression_log=expression_log)
 
             elif statement_variables is not None and current_statement in statement_variables:
                 is_string = True
@@ -521,19 +734,22 @@ class ExpressionBuilder:
                                                        variables=variables,
                                                        statement_variables=statement_variables,
                                                        replace_values=replace_values,
-                                                       statement_inheritance_level=self.get_inheritance_level())
+                                                       statement_inheritance_level=self.get_inheritance_level(),
+                                                       expression_log=expression_log)
             elif current_statement in self.global_statement_data:
                 is_string = True
                 current_statement = self.run_statement(self.global_statement_data[current_statement],
                                                        variables=variables,
                                                        statement_variables=statement_variables,
                                                        replace_values=replace_values,
-                                                       statement_inheritance_level=self.get_inheritance_level())
+                                                       statement_inheritance_level=self.get_inheritance_level(),
+                                                       expression_log=expression_log)
             elif current_statement in self.global_string_statement_data:
-                return self.string_replace(self.global_string_statement_data[current_statement],
-                                           variables,
-                                           statement_variables,
-                                           replace_values)
+                return self.string_replace(statement=self.global_string_statement_data[current_statement],
+                                           variables=variables,
+                                           statement_variables=statement_variables,
+                                           replace_values=replace_values,
+                                           expression_log=expression_log)
             elif len(current_statement_split) > 1 and current_statement_split[0][0] in self.global_usage_dict_data:
 
                 current_dict_or_value = self.global_usage_dict_data[current_statement_split[0][0]]
@@ -554,7 +770,9 @@ class ExpressionBuilder:
                     for set_code, set_data in self.global_set_data.items():
                         if current_statement in set_data:
                             is_string = True
-                            self.add_to_used_variables(current_statement)
+                            self.add_to_used_variables(variable_name=current_statement,
+                                                       expression_log=expression_log,
+                                                       value=set_data[current_statement][0])
                             highest_inheritance_level = set_data[current_statement][1]
                             current_statement = set_data[current_statement][0]
                             if self.highest_inheritance_level < highest_inheritance_level:
@@ -570,7 +788,8 @@ class ExpressionBuilder:
                                 variables=variables,
                                 statement_variables=statement_variables,
                                 replace_values=replace_values,
-                                statement_inheritance_level=self.get_inheritance_level())
+                                statement_inheritance_level=self.get_inheritance_level(),
+                                expression_log=expression_log)
                             break
 
         if current_statement is None:
@@ -588,10 +807,12 @@ class ExpressionBuilder:
                 return current_statement
             elif process_multi_part and '.' in current_statement:
                 # lets see if the first part is part of an equation
+                # noinspection PyTypeChecker
                 return self.process_multi_part_statement(current_statement=current_statement,
                                                          variables=variables,
                                                          statement_variables=statement_variables,
-                                                         replace_values=replace_values)
+                                                         replace_values=replace_values,
+                                                         expression_log=expression_log)
 
             else:
                 raise ExpressionError('No variable named %s' % current_statement)
@@ -611,7 +832,8 @@ class ExpressionBuilder:
                      'THIRD_PI': THIRD_PI}
         return variables.get(current_statement)
 
-    def process_multi_part_statement(self, current_statement, variables, statement_variables, replace_values):
+    def process_multi_part_statement(self, current_statement, variables,
+                                     statement_variables, replace_values, expression_log):
         parts = current_statement.split('.')
 
         part_statement = self.run_statement(
@@ -620,7 +842,8 @@ class ExpressionBuilder:
             statement_variables=statement_variables,
             replace_values=replace_values,
             statement_inheritance_level=self.get_inheritance_level(),
-            _process_multi_part=False)
+            _process_multi_part=False,
+            expression_log=expression_log)
 
         parts[0] = part_statement
         current_statement = '.'.join(parts)
@@ -631,14 +854,19 @@ class ExpressionBuilder:
             statement_variables=statement_variables,
             replace_values=replace_values,
             statement_inheritance_level=self.get_inheritance_level(),
-            _process_multi_part=False)
+            _process_multi_part=False,
+            expression_log=expression_log)
         return current_statement
 
-    def add_to_used_variables(self, variable_name):
+    def add_to_used_variables(self, variable_name, expression_log, value):
         if variable_name in self.used_statements:
             self.used_statements[variable_name] += 1
         else:
             self.used_statements[variable_name] = 1
+        
+        if expression_log is not None:
+            expression_log.add_variable(variable_name, value)
+            expression_log.statements[-1] += f'[{value}]'
 
     def clear_used_variables(self):
         self.used_statements = {}
@@ -792,8 +1020,11 @@ class ExpressionBuilder:
                 c == self.op_multiply)
 
     @staticmethod
-    def is_math_operator(c):
-        return c in ['+', '-', '/', '*', '(', ')']
+    def is_math_operator(c, ignore_brackets=False):
+        if ignore_brackets:
+            return c in ['+', '-', '/', '*']
+        else:
+            return c in ['+', '-', '/', '*', '(', ')']
 
     def is_coded_logical_operator(self, character, include_and_or):
         if include_and_or:
@@ -823,7 +1054,8 @@ class ExpressionBuilder:
             elif operator == self.logic_ne:
                 return right_hand_statement not in left_hand_statement
             raise ExpressionError('Unable to do check list with operator')
-        elif (operator not in [self.op_none, self.logic_and, self.logic_or, self.logic_xor, self.logic_eq, self.logic_ne]
+        elif (operator not in [self.op_none, self.logic_and, self.logic_or,
+                               self.logic_xor, self.logic_eq, self.logic_ne]
                 and isinstance(left_hand_statement, str)
                 and isinstance(right_hand_statement, str)
                 and left_hand_statement == ''
@@ -1020,8 +1252,8 @@ class ExpressionBuilder:
                 global_symbolic_link_data[key] = value
             self.global_symbolic_link_data = global_symbolic_link_data
 
-    def process_switch_statement(self, switch_value, statement,
-                                 current_character_index, variables, statement_variables, replace_values):
+    def process_switch_statement(self, switch_value, statement, current_character_index,
+                                 variables, statement_variables, replace_values, expression_log):
 
         matched_statement = ''
         case_statement = ''
@@ -1102,18 +1334,20 @@ class ExpressionBuilder:
                                                variables=variables,
                                                statement_variables=statement_variables,
                                                replace_values=replace_values,
-                                               statement_inheritance_level=self.get_inheritance_level())
+                                               statement_inheritance_level=self.get_inheritance_level(),
+                                               expression_log=expression_log)
 
         return current_statement, skip_characters
 
-    def process_options(self, option_code, variables, statement_variables):
+    def process_options(self, option_code, variables, statement_variables, expression_log):
         option_data = self.options[option_code]
         if 'value' in option_data:
             return option_data['value']
 
         result, local_statement_variables = self.process_option_part(option=option_data['multiple_statements'],
                                                                      variables=variables,
-                                                                     statement_variables=statement_variables)
+                                                                     statement_variables=statement_variables,
+                                                                     expression_log=expression_log)
         if result is None:
             result = option_data['default_value']
         if isinstance(result, dict):
@@ -1128,35 +1362,39 @@ class ExpressionBuilder:
             self.process_dict_option(result=result,
                                      new_dict=new_dict,
                                      variables=variables,
-                                     statement_variables=option_statement_variables)
+                                     statement_variables=option_statement_variables,
+                                     expression_log=expression_log)
             result = new_dict
         option_data['value'] = result
         return result
 
-    def process_dict_option(self, result, new_dict, variables, statement_variables):
+    def process_dict_option(self, result, new_dict, variables, statement_variables, expression_log):
         for code, value in result.items():
             if isinstance(value, dict):
                 new_dict[code] = {}
                 self.process_dict_option(result=value,
                                          new_dict=new_dict[code],
                                          variables=variables,
-                                         statement_variables=statement_variables)
+                                         statement_variables=statement_variables,
+                                         expression_log=expression_log)
 
             elif not isinstance(value, (int, float)):
                 value = self.run_statement(statement=value,
                                            variables=variables,
-                                           statement_variables=statement_variables)
+                                           statement_variables=statement_variables,
+                                           expression_log=expression_log)
                 new_dict[code] = value
             else:
                 new_dict[code] = value
 
-    def process_option_part(self, option, variables, statement_variables):
+    def process_option_part(self, option, variables, statement_variables, expression_log):
         for row in option:
             statement = row[0]
             value_data = row[1]
             result = self.run_statement(statement=statement,
                                         variables=variables,
-                                        statement_variables=statement_variables)
+                                        statement_variables=statement_variables,
+                                        expression_log=expression_log)
 
             if result:
                 local_variables = {}
@@ -1172,7 +1410,8 @@ class ExpressionBuilder:
 
                     return self.process_option_part(option=value_data,
                                                     variables=variables,
-                                                    statement_variables=option_statement_variables)
+                                                    statement_variables=option_statement_variables,
+                                                    expression_log=expression_log)
 
                 return value_data, local_variables
         return None, None
