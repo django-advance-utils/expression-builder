@@ -120,18 +120,3 @@ class LogsTests(unittest.TestCase):
 
         self.assertEqual({}, expression_log.variables)
         self.assertEqual(["result = 'Hello World'"], expression_log.statements)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
