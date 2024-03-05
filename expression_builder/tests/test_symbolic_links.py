@@ -1,6 +1,6 @@
 import unittest
 
-from expression_builder.exceptions import ExpressionError
+from expression_builder.exceptions import ExpressionError, ExpressionVariableError
 from expression_builder.expression_builder import ExpressionBuilder
 
 
@@ -23,7 +23,7 @@ class SymbolicLinkTests(unittest.TestCase):
 
         exp.clear_all_symbolic_link_global()
 
-        with self.assertRaises(ExpressionError) as cm:
+        with self.assertRaises(ExpressionVariableError) as cm:
             self.exp.run_statement("ladder")
         the_exception = cm.exception
         self.assertEqual(the_exception.value, 'No variable named ladder')
@@ -44,7 +44,7 @@ class SymbolicLinkTests(unittest.TestCase):
 
         exp.clear_all_symbolic_link_global('test')
 
-        with self.assertRaises(ExpressionError) as cm:
+        with self.assertRaises(ExpressionVariableError) as cm:
             self.exp.run_statement("ladder")
         the_exception = cm.exception
         self.assertEqual(the_exception.value, 'No variable named ladder')

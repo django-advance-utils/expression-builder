@@ -104,3 +104,11 @@ class SimpleTests(unittest.TestCase):
     def test_minus3(self):
         result = self.exp.run_statement("3 + -4")
         self.assertEqual(-1, result)
+
+    def test_minus4(self):
+        result = self.exp.run_statement("10 + (-8 + 4)")
+        self.assertEqual(6, result)
+
+    def test_minus5(self):
+        result = self.exp.run_statement("-8 + 4")
+        self.assertEqual(-4, result)

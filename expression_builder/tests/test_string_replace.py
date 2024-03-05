@@ -1,6 +1,6 @@
 import unittest
 
-from expression_builder.exceptions import ExpressionError
+from expression_builder.exceptions import ExpressionError, ExpressionVariableError
 from expression_builder.expression_builder import ExpressionBuilder
 
 
@@ -46,7 +46,7 @@ class StringReplaceTests(unittest.TestCase):
         self.assertEqual(';hello;#', result)
 
     def test_unknown_variable(self):
-        with self.assertRaises(ExpressionError) as cm:
+        with self.assertRaises(ExpressionVariableError) as cm:
             self.exp.string_replace(";[tom];[tom]#")
         the_exception = cm.exception
         self.assertEqual(the_exception.value, 'No variable named tom')

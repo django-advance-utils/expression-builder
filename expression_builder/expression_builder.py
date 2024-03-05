@@ -1,6 +1,6 @@
 import math
 
-from .exceptions import ExpressionError
+from .exceptions import ExpressionError, ExpressionVariableError
 from .globals import SIXTH_PI, QUARTER_PI, THIRD_PI, PI, TWO_PI, ONE_AND_HALF_PI, HALF_PI
 
 
@@ -815,7 +815,7 @@ class ExpressionBuilder:
                                                          expression_log=expression_log)
 
             else:
-                raise ExpressionError('No variable named %s' % current_statement)
+                raise ExpressionVariableError(f'No variable named {current_statement}')
 
     @staticmethod
     def fix_variables(current_statement):

@@ -1,6 +1,6 @@
 import unittest
 
-from expression_builder.exceptions import ExpressionError
+from expression_builder.exceptions import ExpressionError, ExpressionVariableError
 from expression_builder.expression_builder import ExpressionBuilder
 
 
@@ -30,13 +30,13 @@ class ErrorTests(unittest.TestCase):
         self.assertEqual(the_exception.value, 'No function named tom')
 
     def test_unknown_variable(self):
-        with self.assertRaises(ExpressionError) as cm:
+        with self.assertRaises(ExpressionVariableError) as cm:
             self.exp.run_statement("result = tom")
         the_exception = cm.exception
         self.assertEqual(the_exception.value, 'No variable named tom')
 
     def test_unknown_variable2(self):
-        with self.assertRaises(ExpressionError) as cm:
+        with self.assertRaises(ExpressionVariableError) as cm:
             self.exp.run_statement("result = 1?'tom")
         the_exception = cm.exception
         self.assertEqual(the_exception.value,  'No variable named tom')
