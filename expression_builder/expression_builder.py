@@ -819,10 +819,10 @@ class ExpressionBuilder:
 
     @staticmethod
     def fix_variables(current_statement):
-        variables = {'true': True,
-                     'yes': True,
-                     'false': False,
-                     'no': False,
+        variables = {'TRUE': True,
+                     'YES': True,
+                     'FALSE': False,
+                     'NO': False,
                      'PI': PI,
                      'HALF_PI': HALF_PI,
                      'TWO_PI': TWO_PI,
@@ -830,7 +830,8 @@ class ExpressionBuilder:
                      'SIXTH_PI': SIXTH_PI,
                      'QUARTER_PI': QUARTER_PI,
                      'THIRD_PI': THIRD_PI}
-        return variables.get(current_statement)
+
+        return variables.get(current_statement.upper())
 
     def process_multi_part_statement(self, current_statement, variables,
                                      statement_variables, replace_values, expression_log):

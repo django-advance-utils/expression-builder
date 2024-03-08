@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="expression-builder",
-    version="0.0.6",
+    version="0.0.7",
     author="Tom Turner",
     description="Django app that does mathematical expression",
     long_description=long_description,

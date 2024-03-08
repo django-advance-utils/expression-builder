@@ -17,6 +17,14 @@ class LogicTests(unittest.TestCase):
         result = self.exp.run_statement("result = false;")
         self.assertEqual(False, result['result'])
 
+    def test_true_camelcase(self):
+        result = self.exp.run_statement("True")
+        self.assertEqual(True, result)
+
+    def test_false_camelcase(self):
+        result = self.exp.run_statement("False")
+        self.assertEqual(False, result)
+
     def test_yes(self):
         result = self.exp.run_statement("result = yes;")
         self.assertEqual(True, result['result'])
@@ -24,6 +32,22 @@ class LogicTests(unittest.TestCase):
     def test_no(self):
         result = self.exp.run_statement("result = no;")
         self.assertEqual(False, result['result'])
+
+    def test_yes_2(self):
+        result = self.exp.run_statement("yes")
+        self.assertEqual(True, result)
+
+    def test_no_2(self):
+        result = self.exp.run_statement("no")
+        self.assertEqual(False, result)
+
+    def test_yes_camelcase(self):
+        result = self.exp.run_statement("Yes")
+        self.assertEqual(True, result)
+
+    def test_no_camelcase(self):
+        result = self.exp.run_statement("No")
+        self.assertEqual(False, result)
 
     def test_default_assignment(self):
         result = self.exp.run_statement("result = 17;")
@@ -156,3 +180,4 @@ class LogicTests(unittest.TestCase):
     def test_advance(self):
         result = self.exp.run_statement("x_options == 1;", variables={'x_options': 1})
         self.assertEqual(True, result)
+
