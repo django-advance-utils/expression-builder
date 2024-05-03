@@ -211,8 +211,10 @@ class ExpressionBuilder:
                                                                expression_log=expression_log)
                             arguments.append(arg_statement)
 
-                        function_data = self.convert_functions(function_name, arguments)
-
+                        try:
+                            function_data = self.convert_functions(function_name, arguments)
+                        except ValueError:
+                            raise ExpressionError(f'Value error ({statement})')
                         if function_data['routine']:
                             if function_name == "switch":
                                 function_value, skip_characters = self.process_switch_statement(

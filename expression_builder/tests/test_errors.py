@@ -77,3 +77,9 @@ class ErrorTests(unittest.TestCase):
         # should not cause an error as the var is blank and will default to 0
         result = self.exp.run_statement("result = 15 + blank", variables={'blank': ''})
         self.assertEqual({'result': 15}, result)
+
+    def test_operations_error_tan(self):
+        with self.assertRaises(ExpressionError) as cm:
+            result = self.exp.run_statement("result = tan(blank)", variables={'blank': ''})
+        the_exception = cm.exception
+        self.assertEqual(the_exception.value, 'Value error (result = tan(blank))')
