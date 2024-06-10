@@ -33,3 +33,17 @@ class MultiStatementsTests(unittest.TestCase):
         result = self.exp.run_statement("a = 10;b = tom", variables={'tom': 100})
         self.assertEqual(10, result['a'])
         self.assertEqual(100, result['b'])
+
+    def test_no_equal(self):
+        result = self.exp.run_statement("tom = 100;b", default_value=50)
+        self.assertEqual(100, result['tom'])
+        self.assertEqual(50, result['b'])
+
+    def test_no_equal_swap(self):
+        result = self.exp.run_statement("b;tom = 100", default_value=50)
+        self.assertEqual(50, result['b'])
+        self.assertEqual(100, result['tom'])
+
+    def test_no_equal_single(self):
+        result = self.exp.run_statement("b", default_value=50)
+        self.assertEqual(50, result['b'])
