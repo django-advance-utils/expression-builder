@@ -860,14 +860,19 @@ class ExpressionBuilder:
                                      statement_variables, replace_values, expression_log):
         parts = current_statement.split('.')
 
-        part_statement = self.run_statement(
-            parts[0],
-            variables=variables,
-            statement_variables=statement_variables,
-            replace_values=replace_values,
-            statement_inheritance_level=self.get_inheritance_level(),
-            _process_multi_part=False,
-            expression_log=expression_log)
+        try:
+            part_statement = self.run_statement(
+                parts[0],
+                variables=variables,
+                statement_variables=statement_variables,
+                replace_values=replace_values,
+                statement_inheritance_level=self.get_inheritance_level(),
+                _process_multi_part=False,
+                expression_log=expression_log,
+
+            )
+        except ExpressionVariableError as e:
+            raise ExpressionVariableError(f'{e.value} - {current_statement}')
 
         parts[0] = part_statement
         current_statement = '.'.join(parts)

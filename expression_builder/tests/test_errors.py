@@ -41,6 +41,12 @@ class ErrorTests(unittest.TestCase):
         the_exception = cm.exception
         self.assertEqual(the_exception.value,  'No variable named tom')
 
+    def test_unknown_variable3(self):
+        with self.assertRaises(ExpressionVariableError) as cm:
+            self.exp.run_statement("result = 1?'$.tom")
+        the_exception = cm.exception
+        self.assertEqual(the_exception.value,  'No variable named $ - $.tom')
+
     def test_bad_question_mark(self):
         with self.assertRaises(ExpressionError) as cm:
             self.exp.run_statement("result = 1'tom':'fred'")
@@ -83,3 +89,4 @@ class ErrorTests(unittest.TestCase):
             result = self.exp.run_statement("result = tan(blank)", variables={'blank': ''})
         the_exception = cm.exception
         self.assertEqual(the_exception.value, 'Value error (result = tan(blank))')
+
