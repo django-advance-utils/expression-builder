@@ -875,7 +875,10 @@ class ExpressionBuilder:
             raise ExpressionVariableError(f'{e.value} - {current_statement}')
 
         parts[0] = part_statement
-        current_statement = '.'.join(parts)
+        if len(parts) > 1 and isinstance(part_statement, dict) and parts[1] in part_statement:
+            return part_statement[parts[1]]
+        else:
+            current_statement = '.'.join(parts)
 
         current_statement = self.run_statement(
             current_statement,
