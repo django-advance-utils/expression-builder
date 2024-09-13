@@ -552,8 +552,7 @@ class ExpressionBuilder:
                 return_string += current_character
         return return_string
 
-    @staticmethod
-    def convert_functions(function_name, arguments):
+    def convert_functions(self, function_name, arguments):
         """
         deals with a function with one argument
         @param function_name:
@@ -604,6 +603,17 @@ class ExpressionBuilder:
             return {'value': arguments[0].get(arguments[1]), 'routine': False}
         else:
             raise ExpressionError('No function named %s' % function_name)
+
+    def _recursive_get(self, data, keys):
+        if len(keys) == 0:
+            return data
+        key = keys[0]
+
+        # Handle list indices if applicable
+        if key.isdigit():
+            key = int(key)
+
+        return self._recursive_get(data[key], keys[1:])
 
     @staticmethod
     def get_function_arguments(all_arguments):

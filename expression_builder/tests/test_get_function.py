@@ -13,7 +13,7 @@ class MyExpressionBuilder(ExpressionBuilder):
             return super().convert_functions(function_name, arguments)
 
 
-class CustomFunctionsTests(unittest.TestCase):
+class GetFunctionTests(unittest.TestCase):
 
     # noinspection PyPep8Naming
     def setUp(self):
@@ -34,3 +34,7 @@ class CustomFunctionsTests(unittest.TestCase):
 
         self.assertEqual(self.exp.run_statement("get(r,'name')"), 'bar')
         self.assertEqual(self.exp.run_statement("r.name"), 'bar')
+
+    def test_recursive_get(self):
+        self.exp.add_to_global('r', {'foo': {'bar': {'value': 123}}})
+        self.assertEqual(self.exp.run_statement("get(r,'foo.bar.value')"), 123)
