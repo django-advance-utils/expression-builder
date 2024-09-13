@@ -600,7 +600,45 @@ class ExpressionBuilder:
         elif function_name == "int":
             return {'value': int(arguments[0]), 'routine': False}
         elif function_name == "get":
-            return {'value': arguments[0].get(arguments[1]), 'routine': False}
+            keys = arguments[1].split(".")
+            return {'value': self._recursive_get(arguments[0], keys), 'routine': False}
+
+        elif function_name == 'contains':
+            return {'value': arguments[0] in arguments[1], 'routine': False}
+        elif function_name == 'icontains':  # Case-insensitive
+            return {'value': arguments[0].lower() in arguments[1].lower(), 'routine': False}
+
+        elif function_name == 'not_contains':
+            return {'value': arguments[0] not in arguments[1], 'routine': False}
+        elif function_name == 'inot_contains':  # Case-insensitive
+            return {'value': arguments[0].lower() not in arguments[1].lower(), 'routine': False}
+
+        elif function_name == 'begins_with':
+            return {'value': arguments[1].startswith(arguments[0]), 'routine': False}
+        elif function_name == 'ibegins_with':  # Case-insensitive
+            return {'value': arguments[1].lower().startswith(arguments[0].lower()), 'routine': False}
+
+        elif function_name == 'not_begins_with':
+            return {'value': not arguments[1].startswith(arguments[0]), 'routine': False}
+        elif function_name == 'inot_begins_with':  # Case-insensitive
+            return {'value': not arguments[1].lower().startswith(arguments[0].lower()), 'routine': False}
+
+        elif function_name == 'ends_with':
+            return {'value': arguments[1].endswith(arguments[0]), 'routine': False}
+        elif function_name == 'iends_with':  # Case-insensitive
+            return {'value': arguments[1].lower().endswith(arguments[0].lower()), 'routine': False}
+
+        elif function_name == 'not_ends_with':
+            return {'value': not arguments[1].endswith(arguments[0]), 'routine': False}
+        elif function_name == 'inot_ends_with':  # Case-insensitive
+            return {'value': not arguments[1].lower().endswith(arguments[0].lower()), 'routine': False}
+
+        elif function_name == 'iequal':  # Case-insensitive
+            return {'value': arguments[0].lower() == arguments[1].lower(), 'routine': False}
+
+        elif function_name == 'inot_equal':  # Case-insensitive
+            return {'value': arguments[0].lower() != arguments[1].lower(), 'routine': False}
+
         else:
             raise ExpressionError('No function named %s' % function_name)
 
